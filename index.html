@@ -19,11 +19,16 @@
       padding: 10px 15px;
     }
 
-    .centered-title {
+    /* Contenedor del Logo */
+    .logo-container {
       text-align: center;
-      font-size: 22px;
-      font-weight: bold;
       margin-bottom: 12px;
+    }
+
+    .logo-container img {
+      max-height: 55px; /* Altura ideal para la barra superior */
+      width: auto;
+      object-fit: contain;
     }
 
     /* Contenedor del Ticker Tape */
@@ -85,7 +90,10 @@
 </head>
 <body>
 
-  <div class="centered-title">🔔 Monitor Closing Bell Advisors</div>
+  <!-- Cabecera con Logo -->
+  <div class="logo-container">
+    <img src="logo.png" alt="Closing Bell Advisors Logo" />
+  </div>
 
   <!-- Ticker Tape Widget Container -->
   <div id="ticker-container"></div>
