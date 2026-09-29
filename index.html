@@ -31,24 +31,13 @@
       font-weight: bold;
     }
 
-    /* Botón de Transmitir */
-    .btn-transmit {
-      background-color: #2962ff;
-      color: #ffffff;
-      border: none;
-      padding: 8px 16px;
-      font-size: 14px;
-      font-weight: bold;
-      border-radius: 4px;
+    /* Estilo para el botón de Google Cast */
+    google-cast-launcher {
+      --disconnected-color: #ffffff;
+      --connected-color: #2962ff;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: background-color 0.2s;
-    }
-
-    .btn-transmit:hover {
-      background-color: #1e4bd8;
+      width: 32px;
+      height: 32px;
     }
 
     /* Contenedor del Ticker */
@@ -86,7 +75,7 @@
       background-color: #111;
     }
 
-    .video-wrapper iframe, .video-wrapper video {
+    .video-wrapper iframe {
       position: absolute;
       top: 0;
       left: 0;
@@ -107,26 +96,18 @@
       height: 100%;
       width: 100%;
     }
-
-    /* Visor de transmisión */
-    #stream-preview-container {
-      display: none;
-      margin-top: 15px;
-      background: #111;
-      border-radius: 8px;
-      padding: 10px;
-    }
   </style>
 
+  <!-- Script oficial de Google Cast -->
+  <script type="text/javascript" src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
   <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body>
 
   <div class="header-container">
     <div class="centered-title">🔔 Monitor Closing Bell Advisors</div>
-    <button class="btn-transmit" onclick="compartirPantalla()">
-      📺 Transmitir / Compartir Pestaña
-    </button>
+    <!-- Botón nativo de Chromecast -->
+    <google-cast-launcher id="castbutton"></google-cast-launcher>
   </div>
 
   <!-- Ticker Tape Widget Container -->
@@ -145,39 +126,18 @@
     </div>
   </div>
 
-  <!-- Previsualización de la Transmisión (opcional) -->
-  <div id="stream-preview-container">
-    <p style="margin-bottom: 8px; font-size: 14px; color: #aaa;">Transmisión activa:</p>
-    <div class="video-wrapper">
-      <video id="screen-video" autoplay playsinline muted></video>
-    </div>
-  </div>
-
   <script>
-    const URL_SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSa49x6GbEZX5y30fcBv3oueTcOC4AO9sIkj45reZXeNhTkMcsAXfmRA7nhdULkMNtT0DG4YMsH9Ow/pub?output=csv";
-
-    // Función para solicitar compartir pantalla/pestaña
-    async function compartirPantalla() {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: "always" },
-          audio: true
+    // Inicializador de Google Cast
+    window.__onGCastApiAvailable = function(isAvailable) {
+      if (isAvailable) {
+        cast.framework.CastContext.getInstance().setOptions({
+          receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+          autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
         });
-
-        // Muestra la vista previa de lo que se está transmitiendo
-        const videoElement = document.getElementById('screen-video');
-        const container = document.getElementById('stream-preview-container');
-        videoElement.srcObject = stream;
-        container.style.display = 'block';
-
-        // Detectar cuando el usuario detiene la transmisión desde la barra del navegador
-        stream.getVideoTracks()[0].onended = () => {
-          container.style.display = 'none';
-        };
-      } catch (err) {
-        console.warn("Transmisión cancelada o no permitida:", err);
       }
-    }
+    };
+
+    const URL_SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSa49x6GbEZX5y30fcBv3oueTcOC4AO9sIkj45reZXeNhTkMcsAXfmRA7nhdULkMNtT0DG4YMsH9Ow/pub?output=csv";
 
     function parseCSV(csvText) {
       const lines = csvText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
