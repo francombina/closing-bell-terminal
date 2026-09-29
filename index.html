@@ -11,22 +11,32 @@
       padding: 0;
     }
 
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
       background-color: #000000;
       color: #ffffff;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      overflow-x: hidden;
-      padding: 10px 15px;
+      overflow: hidden; /* Evita barras de desplazamiento */
     }
 
-    /* Contenedor del Logo */
+    /* Layout principal ocupando el 100% de la altura de la pantalla */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 10px 15px;
+      gap: 10px;
+    }
+
+    /* Contenedor del Logo compacto */
     .logo-container {
       text-align: center;
-      margin-bottom: 12px;
+      flex-shrink: 0;
     }
 
     .logo-container img {
-      max-height: 55px; /* Altura ideal para la barra superior */
+      max-height: 45px;
       width: auto;
       object-fit: contain;
     }
@@ -34,47 +44,39 @@
     /* Contenedor del Ticker Tape */
     #ticker-container {
       width: 100%;
-      height: 50px;
-      margin-bottom: 15px;
+      height: 46px;
+      flex-shrink: 0;
     }
 
-    /* Layout en 2 columnas */
+    /* Grid layout que aprovecha el resto de la pantalla */
     .grid-container {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      align-items: start;
+      gap: 15px;
+      flex: 1; /* Ocupa todo el alto restante */
+      min-height: 0;
     }
 
-    @media (max-width: 850px) {
-      .grid-container {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Video responsive */
+    /* Video responsive adaptado al alto de la pantalla */
     .video-wrapper {
-      position: relative;
-      padding-bottom: 56.25%; /* Relación de aspecto 16:9 */
-      height: 0;
-      overflow: hidden;
+      width: 100%;
+      height: 100%;
       border-radius: 8px;
+      overflow: hidden;
       background-color: #111;
+      position: relative;
     }
 
     .video-wrapper iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
       width: 100%;
       height: 100%;
       border: 0;
     }
 
-    /* Contenedor del Gráfico TradingView */
+    /* Contenedor del Gráfico TradingView estirado */
     .chart-wrapper {
-      height: 400px;
       width: 100%;
+      height: 100%;
       border-radius: 8px;
       overflow: hidden;
     }
@@ -90,24 +92,26 @@
 </head>
 <body>
 
-  <!-- Cabecera con Logo -->
-  <div class="logo-container">
-    <img src="logo.png" alt="Closing Bell Advisors Logo" />
-  </div>
-
-  <!-- Ticker Tape Widget Container -->
-  <div id="ticker-container"></div>
-
-  <!-- Main Content Grid -->
-  <div class="grid-container">
-    <!-- Columna 1: Video YouTube -->
-    <div class="video-wrapper">
-      <iframe id="youtube-frame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+  <div class="app-container">
+    <!-- Cabecera con Logo -->
+    <div class="logo-container">
+      <img src="logo.png" alt="Closing Bell Advisors Logo" />
     </div>
 
-    <!-- Columna 2: Gráfico TradingView -->
-    <div class="chart-wrapper">
-      <div id="tradingview_chart"></div>
+    <!-- Ticker Tape Widget Container -->
+    <div id="ticker-container"></div>
+
+    <!-- Main Content Grid -->
+    <div class="grid-container">
+      <!-- Columna 1: Video YouTube -->
+      <div class="video-wrapper">
+        <iframe id="youtube-frame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+
+      <!-- Columna 2: Gráfico TradingView -->
+      <div class="chart-wrapper">
+        <div id="tradingview_chart"></div>
+      </div>
     </div>
   </div>
 
@@ -165,17 +169,16 @@
           urlVideo = filaVideo.valor;
         }
 
-        // Obtener activos (activo_1 a activo_10)
-        for (let i = 1; i <= 10; i++) {
-          const fila = data.find(item => item.tipo === `activo_${i}`);
-          if (fila && fila.valor) {
-            const ticker = fila.valor;
-            const nombreCustom = (fila.nombre && fila.nombre.trim() !== '') 
-              ? fila.nombre 
+        // Detectar DINÁMICAMENTE todos los activos que empiecen con 'activo'
+        data.forEach(item => {
+          if (item.tipo && item.tipo.toLowerCase().startsWith('activo') && item.valor) {
+            const ticker = item.valor;
+            const nombreCustom = (item.nombre && item.nombre.trim() !== '') 
+              ? item.nombre 
               : ticker.split(':').pop();
             activosTicker.push({ proName: ticker, title: nombreCustom });
           }
-        }
+        });
 
         if (activosTicker.length > 0) {
           simboloInicial = activosTicker[0].proName;
