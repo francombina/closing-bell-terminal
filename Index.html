@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Closing Bell Terminal</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow-x: hidden;
+      padding: 10px 15px;
+    }
+
+    .centered-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    /* Ticker Container */
+    #ticker-container {
+      width: 100%;
+      height: 50px;
+      margin-bottom: 15px;
+    }
+
+    /* Grid layout para las 2 columnas */
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 850px) {
+      .grid-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Video responsive */
+    .video-wrapper {
+      position: relative;
+      padding-bottom: 56.25%; /* Relación de aspecto 16:9 */
+      height: 0;
+      overflow: hidden;
+      border-radius: 8px;
+      background-color: #111;
+    }
+
+    .video-wrapper iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* Chart Container */
+    .chart-wrapper {
+      height: 400px;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    #tradingview_chart {
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <!-- Librería TradingView -->
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+</head>
+<body>
+
+  <div class="centered-title">🔔 Monitor Closing Bell Advisors</div>
+
+  <!-- Ticker Tape Widget Container -->
+  <div id="ticker-container"></div>
+
+  <!-- Main Content Grid -->
+  <div class="grid-container">
+    <!-- Columna 1: Video -->
+    <div class="video-wrapper">
+      <iframe id="youtube-frame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+
+    <!-- Columna 2: Gráfico TradingView -->
+    <div class="chart-wrapper">
+      <div id="tradingview_chart"></div>
+    </div>
+  </div>
+
+  <script>
+    const URL_SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSa49x6GbEZX5y30fcBv3oueTcOC4AO9sIkj45reZXeNhTkMcsAXfmRA7nhdULkMNtT0DG4YMsH9Ow/pub?output=csv";
+
+    // Convertidor simple de CSV a Array de Objetos
+    function parseCSV(csvText) {
+      const lines = csvText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length < 2) return [];
+      
+      const headers = lines[0].split(',').map(h => h.replace(/^"(.*)"$/, '$1').trim());
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        // Maneja comillas dobles en campos de CSV
+        const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.replace(/^"(.*)"$/, '$1').trim());
+        const obj = {};
+        headers.forEach((h, idx) => {
+          obj[h] = row[idx] || '';
+        });
+        data.push(obj);
+      }
+      return data;
+    }
+
+    // Convertir URLs estándar de YouTube a embed
+    function getEmbedYouTubeUrl(url) {
+      if (!url) return "https://www.youtube.com/embed/m5QLgqBA04M";
+      let videoId = "";
+      if (url.includes("v=")) {
+        videoId = url.split("v=")[1].split("&")[0];
+      } else if (url.includes("youtu.be/")) {
+        videoId = url.split("youtu.be/")[1].split("?")[0];
+      } else if (url.includes("embed/")) {
+        return url;
+      }
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : "https://www.youtube.com/embed/m5QLgqBA04M";
+    }
+
+    // Cargar datos del Google Sheet e inicializar widgets
+    async function initTerminal() {
+      let urlVideo = "https://www.youtube.com/watch?v=m5QLgqBA04M";
+      let activosTicker = [];
+      let simboloInicial = "NASDAQ:AAPL";
+
+      try {
+        const response = await fetch(URL_SHEET);
+        if (!response.ok) throw new Error("Error en respuesta de Google Sheets");
+        const csvText = await response.text();
+        const data = parseCSV(csvText);
+
+        // Buscar URL de Video
+        const filaVideo = data.find(item => item.tipo === 'video');
+        if (filaVideo && filaVideo.valor) {
+          urlVideo = filaVideo.valor;
+        }
+
+        // Buscar Activos (activo_1 a activo_10)
+        for (let i = 1; i <= 10; i++) {
+          const fila = data.find(item => item.tipo === `activo_${i}`);
+          if (fila && fila.valor) {
+            const ticker = fila.valor;
+            const nombreCustom = (fila.nombre && fila.nombre.trim() !== '') 
+              ? fila.nombre 
+              : ticker.split(':').pop();
+            activosTicker.push({ proName: ticker, title: nombreCustom });
+          }
+        }
+
+        if (activosTicker.length > 0) {
+          simboloInicial = activosTicker[0].proName;
+        } else {
+          activosTicker = [{ proName: "NASDAQ:AAPL", title: "AAPL" }];
+        }
+
+      } catch (err) {
+        console.error("No se pudieron obtener los datos de Google Sheets:", err);
+        activosTicker = [{ proName: "NASDAQ:AAPL", title: "AAPL" }];
+      }
+
+      // Renderizar Video
+      document.getElementById('youtube-frame').src = getEmbedYouTubeUrl(urlVideo);
+
+      // Renderizar Ticker Widget de TradingView
+      const tickerContainer = document.getElementById('ticker-container');
+      const tickerScript = document.createElement('script');
+      tickerScript.type = 'text/javascript';
+      tickerScript.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+      tickerScript.async = true;
+      tickerScript.text = JSON.stringify({
+        "symbols": activosTicker,
+        "showSymbolLogo": true,
+        "colorTheme": "dark",
+        "displayMode": "adaptive",
+        "locale": "es"
+      });
+      tickerContainer.appendChild(tickerScript);
+
+      // Renderizar Chart Widget de TradingView
+      new TradingView.widget({
+        "autosize": true,
+        "symbol": simboloInicial,
+        "interval": "D",
+        "timezone": "America/Argentina/Buenos_Aires",
+        "theme": "dark",
+        "style": "1",
+        "locale": "es",
+        "toolbar_bg": "#000000",
+        "allow_symbol_change": true,
+        "container_id": "tradingview_chart"
+      });
+    }
+
+    initTerminal();
+  </script>
+</body>
+</html>
