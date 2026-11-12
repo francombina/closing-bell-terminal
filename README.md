@@ -1,6 +1,6 @@
 # 📊 Closing Bell Terminal
 
-Monitor de mercado en tiempo real diseñado para centralizar el seguimiento diario de activos financieros, curvas de precios y métricas operativas en una única interfaz limpia y rápida.
+Monitor de mercado en tiempo real diseñado para centralizar el seguimiento diario de precios y noticias en vivo en una única interfaz limpia y rápida.
 
 🔗 **[Ver Terminal en Vivo](https://francombina.github.io/Closing-Bell-Terminal/)**
 
